@@ -1,0 +1,45 @@
+{
+ "updated": "2026-10-17T18:40:00Z",
+ "events": [
+  {
+   "createdAt": "2026-10-17T16:45:00Z",
+   "date": "2026-10-21",
+   "subject": "Основы права",
+   "title": "Домашнее задание",
+   "type": "work",
+   "id": "dz-pravo-2110"
+  },
+  {
+   "createdAt": "2026-10-17T16:45:00Z",
+   "date": "2026-10-27",
+   "subject": "Логика",
+   "title": "Домашнее задание",
+   "type": "work",
+   "id": "dz-logika-2710"
+  },
+  {
+   "createdAt": "2026-10-17T16:35:00Z",
+   "date": "2026-11-01",
+   "subject": "Менеджмент",
+   "title": "Сдать эссе",
+   "type": "work",
+   "id": "mgmt-esse"
+  },
+  {
+   "createdAt": "2026-10-17T16:45:00Z",
+   "date": "2026-11-20",
+   "subject": "История России",
+   "title": "Домашнее задание",
+   "type": "work",
+   "id": "dz-hist-2011"
+  },
+  {
+   "createdAt": "2026-10-17T16:35:00Z",
+   "date": "2026-12-15",
+   "subject": "История России",
+   "title": "Сдать эссе",
+   "type": "work",
+   "id": "hist-esse-semya"
+  }
+ ]
+}
