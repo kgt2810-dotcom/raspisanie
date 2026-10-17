@@ -177,6 +177,15 @@ textarea{min-height:72px;resize:vertical}
 
 .lb a.lbbtn{background:#F3F5F8;color:#18202C;border-radius:10px;padding:10px 18px;font-weight:600;text-decoration:none}
 
+.plist{display:grid;gap:8px}
+.pitem{border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:grid;grid-template-columns:auto 1fr;gap:6px 10px;align-items:start;background:var(--bg)}
+.pitem.off{opacity:.55}
+.pitem input[type=checkbox]{width:20px;height:20px;margin-top:2px;accent-color:var(--accent)}
+.pitem .pf{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:6px;min-width:0}
+.pitem .pf input,.pitem .pf select{font-size:14px;padding:7px 9px;background:var(--surface)}
+.pitem .src{grid-column:2;font-size:12px;color:var(--muted);overflow-wrap:anywhere}
+.pitem .dup{grid-column:2;font-size:12px;color:var(--t-work);font-weight:600}
+
 footer{padding-block:8px 40px;color:var(--muted);font-size:13px;display:flex;gap:12px;flex-wrap:wrap;justify-content:space-between;align-items:center}
 .steps{margin:0;padding-left:20px;display:grid;gap:6px;font-size:14px;color:var(--ink)}
 .steps a{color:var(--accent)}
@@ -206,7 +215,7 @@ footer{padding-block:8px 40px;color:var(--muted);font-size:13px;display:flex;gap
 
 <main class="wrap" id="main">
   <section class="quick" id="quick" hidden aria-label="Быстро добавить">
-    <div class="quick-h"><b>Быстро добавить</b><button class="linkbtn" id="quickToggle">Свернуть</button></div>
+    <div class="quick-h"><b>Быстро добавить</b><span style="display:flex;gap:14px"><button class="linkbtn" id="pasteBtn">Из текста</button><button class="linkbtn" id="quickToggle">Свернуть</button></span></div>
     <div id="quickBody" style="display:grid;gap:12px">
       <div class="qrow"><span class="qlabel">Что</span><div class="qchips" id="qKind"></div></div>
       <div class="qrow"><span class="qlabel">Предмет</span><div class="qchips" id="qSubj"></div>
@@ -324,6 +333,36 @@ footer{padding-block:8px 40px;color:var(--muted);font-size:13px;display:flex;gap
       <div class="sheet-actions">
         <button type="button" class="ghost" id="loginCancel">Отмена</button>
         <button type="button" class="add" id="loginGo">Войти</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="scrim" id="pasteScrim" hidden>
+  <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="pasteTitle" style="max-width:640px">
+    <h3 id="pasteTitle">Добавить из текста</h3>
+    <div class="form">
+      <div id="pasteStep1" class="form">
+        <label for="pasteIn">Вставь сообщение от преподавателя или из чата
+          <textarea id="pasteIn" style="min-height:180px" placeholder="23.10.2026 10.10 ауд. 508 — ФФ26-9 …"></textarea>
+        </label>
+        <label for="myGroup">Моя группа (строки для других групп не будут отмечены)
+          <input id="myGroup" placeholder="ФФ26-9">
+        </label>
+        <p class="hint">Сайт сам найдёт даты, время, аудитории, предмет и тип. Перед добавлением всё можно поправить.</p>
+      </div>
+      <div id="pasteStep2" class="form" hidden>
+        <p class="hint" id="pasteSummary" style="font-size:14px;color:var(--ink)"></p>
+        <div id="pasteList" class="plist"></div>
+        <label for="pasteNote">Заметка ко всем событиям
+          <textarea id="pasteNote"></textarea>
+        </label>
+      </div>
+      <p class="err" id="pasteErr" hidden></p>
+      <div class="sheet-actions">
+        <button type="button" class="ghost" id="pasteBack" hidden>Назад</button>
+        <button type="button" class="ghost" id="pasteCancel">Отмена</button>
+        <button type="button" class="add" id="pasteGo">Разобрать</button>
       </div>
     </div>
   </div>
@@ -751,6 +790,7 @@ $("lb").addEventListener("click",ev=>{ if(ev.target===$("lb")) $("lb").hidden=tr
 document.addEventListener("keydown",ev=>{ if(ev.key!=="Escape") return;
   if(!$("lb").hidden){ $("lb").hidden=true; return; }
   if(!$("loginScrim").hidden){ $("loginScrim").hidden=true; return; }
+  if(!$("pasteScrim").hidden){ $("pasteScrim").hidden=true; return; }
   if(!$("scrim").hidden) closeSheet(); });
 
 /* ===== Вход старосты ===== */
@@ -782,6 +822,150 @@ $("loginGo").onclick=async()=>{
     err.textContent = e.status===401 ? "Ключ не подходит. Скопируй его заново целиком." : (e.status===403||e.status===404) ? "У ключа нет доступа к этому репозиторию с правом записи. Проверь шаги 3 и 4." : "Не получилось проверить ключ. Проверь интернет.";
     err.hidden=false;
   }finally{ b.disabled=false; b.textContent="Войти"; }
+};
+
+/* ===== Разбор текста объявлений ===== */
+const SUBJ_RULES=[
+  [/цифров\S*\s+математ/i,"Цифровая математика"],
+  [/основ\S*\s+менеджмент/i,"Основы менеджмента"],
+  [/основ\S*\s+прав/i,"Основы права"],
+  [/экономическ\S*\s+теори/i,"Экономическая теория"],
+  [/экономик/i,"Экономическая теория"],
+  [/логик/i,"Логика"],
+  [/истори\S*\s+росси|истори/i,"История России"],
+  [/менеджмент/i,"Менеджмент"],
+  [/математ/i,"Математика"],
+  [/иностранн\S*\s+язык|английск/i,"Иностранный язык"],
+  [/философ/i,"Философия"],
+  [/физическ\S*\s+культур|физкультур/i,"Физическая культура и спорт"],
+  [/финансов\S*\s+университет\S*:?\s*истори/i,"Финансовый университет: история и современность"]
+];
+const MONTHS_RE={"январ":1,"феврал":2,"март":3,"апрел":4,"ма[яй]":5,"июн":6,"июл":7,"август":8,"сентябр":9,"октябр":10,"ноябр":11,"декабр":12};
+const GROUP_RE=/[А-ЯЁA-Z]{1,5}\d{2}-\d{1,3}/gi;
+function detectSubject(text){ for(const [re,name] of SUBJ_RULES) if(re.test(text)) return name; return ""; }
+function detectKind(text){
+  const t=text.toLowerCase();
+  if(/экзамен/.test(t)) return {type:"exam",title:"Экзамен"};
+  if(/зач[её]т/.test(t) && !/консультац/.test(t)) return {type:"exam",title:"Зачёт"};
+  if(/контрольн/.test(t)) return {type:"exam",title:"Контрольная работа"};
+  if(/консультац|отработ/.test(t)) return {type:"cons",title:"Консультация"};
+  if(/эссе/.test(t)) return {type:"work",title:"Сдать эссе"};
+  if(/дз\b|домашн|задани|сдать|дедлайн|срок/.test(t)) return {type:"work",title:"Домашнее задание"};
+  return {type:"event",title:"Мероприятие"};
+}
+function nearestYear(m,d){ const t=startOfToday(); let y=t.getFullYear(); const c=new Date(y,m-1,d); if((t-c)/864e5>60) y++; return y; }
+function findDates(line){
+  const out=[];
+  const re=/(^|[^\d])(\d{1,2})[./](\d{1,2})(?:[./](\d{2,4}))?(?![\d])/g; let m;
+  while((m=re.exec(line))){
+    const d=+m[2], mo=+m[3]; let y=m[4]?+m[4]:0;
+    if(d<1||d>31||mo<1||mo>12) continue;
+    if(!m[4]){ // без года: отличаем от времени вроде 10.10 по контексту
+      const after=line.slice(m.index+m[0].length);
+      const before=line.slice(0,m.index+m[1].length);
+      if(/^\s*(?:ч|час|мин)/i.test(after)) continue;
+      if(out.length && /\s$/.test(before)) continue; // вторая "дата" после первой — это время
+    }
+    if(y && y<100) y+=2000; if(!y) y=nearestYear(mo,d);
+    out.push({date:y+"-"+String(mo).padStart(2,"0")+"-"+String(d).padStart(2,"0"), raw:m[0].slice(m[1].length), idx:m.index+m[1].length});
+  }
+  const re2=new RegExp("(\\d{1,2})\\s+("+Object.keys(MONTHS_RE).join("|")+")[а-я]*(?:\\s+(\\d{4}))?","gi");
+  while((m=re2.exec(line))){
+    const key=Object.keys(MONTHS_RE).find(k=>new RegExp("^"+k,"i").test(m[2])); const mo=MONTHS_RE[key]; const d=+m[1];
+    const y=m[3]?+m[3]:nearestYear(mo,d);
+    out.push({date:y+"-"+String(mo).padStart(2,"0")+"-"+String(d).padStart(2,"0"), raw:m[0], idx:m.index});
+  }
+  return out;
+}
+function findTime(line, dates){
+  let rest=line; dates.forEach(d=>{ rest=rest.replace(d.raw," "); });
+  rest=rest.replace(GROUP_RE," ").replace(/(ауд\.?|аудитори[яи]|каб\.?|кабинет)\s*№?\s*\d+[а-яa-z]?/gi," ");
+  const m=rest.match(/(?:^|[^\d])([01]?\d|2[0-3])[.:]([0-5]\d)(?![\d])/);
+  return m ? String(+m[1]).padStart(2,"0")+":"+m[2] : "";
+}
+function findPlace(line){
+  const m=line.match(/(ауд\.?|аудитори[яи]|каб\.?|кабинет)\s*№?\s*(\d+[а-яa-z]?)/i); if(m) return "ауд. "+m[2];
+  if(/онлайн|zoom|телемост|teams/i.test(line)) return "онлайн";
+  return "";
+}
+function parseAnnouncement(text, myGroup){
+  const lines=text.split(/\r?\n/).map(s=>s.replace(/ /g," ").trim()).filter(Boolean);
+  const subject=detectSubject(text); const kind=detectKind(text);
+  const mine=(myGroup||"").trim().toUpperCase();
+  const openToAll=/независимо от (?:\S+\s+)?групп|любой группы|любая группа|все группы|любой (?:из )?(?:указанн\S*\s+)?д(?:ень|ни)/i.test(text);
+  const items=[], noteLines=[];
+  lines.forEach(line=>{
+    const dates=findDates(line);
+    if(!dates.length){ if(!/^(добр|здравств|уважаем|привет|с уважением)/i.test(line)) noteLines.push(line); return; }
+    const groups=(line.match(GROUP_RE)||[]).map(g=>g.toUpperCase());
+    const forMe = openToAll || !groups.length || !mine || groups.includes(mine);
+    const lk=detectKind(line); const k=(lk.type!=="event")?lk:kind;
+    dates.forEach(d=>items.push({date:d.date, time:findTime(line,dates), place:findPlace(line), subject:detectSubject(line)||subject,
+      type:k.type, title:k.title, groups, forMe, line}));
+  });
+  return {items, note:noteLines.join("\n"), openToAll};
+}
+
+/* ===== Окно «Из текста» ===== */
+let pasteItems=[];
+function openPaste(){
+  $("pasteIn").value=""; $("myGroup").value=store("myGroup")||"ФФ26-9";
+  $("pasteStep1").hidden=false; $("pasteStep2").hidden=true; $("pasteBack").hidden=true;
+  $("pasteGo").textContent="Разобрать"; $("pasteErr").hidden=true; $("pasteScrim").hidden=false;
+  setTimeout(()=>$("pasteIn").focus(),50);
+}
+function closePaste(){ $("pasteScrim").hidden=true; }
+function renderPaste(){
+  const list=$("pasteList"); list.textContent="";
+  const allOn=pasteItems.every(x=>x.on);
+  const tg=el("button","linkbtn",allOn?"Снять все отметки":"Отметить все"); tg.type="button"; tg.style.justifySelf="start";
+  tg.onclick=()=>{ pasteItems.forEach(x=>x.on=!allOn); renderPaste(); }; list.append(tg);
+  pasteItems.forEach((it,i)=>{
+    const box=el("div","pitem"+(it.on?"":" off"));
+    const cb=document.createElement("input"); cb.type="checkbox"; cb.checked=it.on; cb.setAttribute("aria-label","Добавить");
+    cb.onchange=()=>{ it.on=cb.checked; renderPaste(); };
+    const pf=el("div","pf");
+    const mk=(type,key,ph)=>{ const inp=document.createElement("input"); inp.type=type; inp.value=it[key]||""; if(ph) inp.placeholder=ph; inp.oninput=()=>{ it[key]=inp.value; }; return inp; };
+    const sel=document.createElement("select"); Object.entries(TYPES).forEach(([k,t])=>{ const o=document.createElement("option"); o.value=k; o.textContent=t.label; if(k===it.type) o.selected=true; sel.append(o); });
+    sel.onchange=()=>{ it.type=sel.value; };
+    pf.append(mk("date","date"), mk("time","time"), sel, mk("text","title","Что"), mk("text","subject","Предмет"), mk("text","place","Где"));
+    box.append(cb,pf);
+    if(it.groups.length) box.append(el("div","src","В сообщении: "+it.groups.join(", ")));
+    if(it.dup) box.append(el("div","dup","Похоже, такое событие уже есть на сайте"));
+    list.append(box);
+  });
+  const n=pasteItems.filter(x=>x.on).length;
+  $("pasteGo").textContent=n?"Добавить ("+n+")":"Ничего не выбрано";
+  $("pasteGo").disabled=!n;
+}
+$("pasteBtn").onclick=openPaste;
+$("pasteCancel").onclick=closePaste;
+$("pasteScrim").addEventListener("click",ev=>{ if(ev.target===$("pasteScrim")) closePaste(); });
+$("pasteBack").onclick=()=>{ $("pasteStep1").hidden=false; $("pasteStep2").hidden=true; $("pasteBack").hidden=true; $("pasteGo").disabled=false; $("pasteGo").textContent="Разобрать"; };
+$("pasteGo").onclick=async()=>{
+  const err=$("pasteErr"); err.hidden=true;
+  if(!$("pasteStep1").hidden){
+    const text=$("pasteIn").value.trim(); if(!text){ err.textContent="Вставь текст сообщения."; err.hidden=false; return; }
+    const g=$("myGroup").value.trim(); store("myGroup",g||null);
+    const r=parseAnnouncement(text,g);
+    if(!r.items.length){ err.textContent="Не нашла в тексте ни одной даты. Добавь событие вручную через «+ Добавить»."; err.hidden=false; return; }
+    pasteItems=r.items.map(it=>({...it, on:it.forMe, dup:events.some(e=>e.date===it.date && (e.time||"")===(it.time||"") && (e.subject||"")===(it.subject||""))}));
+    pasteItems.forEach(it=>{ if(it.dup) it.on=false; });
+    pasteItems.sort((a,b)=>(b.on-a.on)||a.date.localeCompare(b.date));
+    $("pasteNote").value=r.note;
+    const n=pasteItems.length, w=n===1?"дату":(n%10>=2&&n%10<=4&&(n%100<12||n%100>14))?"даты":"дат";
+    const mine=pasteItems.filter(x=>x.forMe).length, other=n-mine;
+    $("pasteSummary").textContent="Нашла "+n+" "+w+". "+(r.openToAll?"В сообщении сказано, что приходить можно независимо от группы, поэтому отмечены все. ":other?("Для твоей группы "+mine+", для других "+other+": они не отмечены, но их можно отметить. "):"")+"Проверь и поправь, если нужно.";
+    $("pasteStep1").hidden=true; $("pasteStep2").hidden=false; $("pasteBack").hidden=false;
+    renderPaste(); return;
+  }
+  const note=$("pasteNote").value.trim();
+  const add=pasteItems.filter(x=>x.on).map(it=>{ const o={id:newId(),createdAt:new Date().toISOString(),type:it.type,title:(it.title||"").trim()||TYPES[it.type].label,date:it.date};
+    ["time","place","subject"].forEach(k=>{ if((it[k]||"").trim()) o[k]=it[k].trim(); }); if(note) o.note=note; return o; }).filter(o=>parseDate(o.date));
+  if(!add.length) return;
+  const b=$("pasteGo"); b.disabled=true; b.textContent="Сохраняю…";
+  try{ await saveEvents(evs=>[...evs,...add], "Из текста: "+add.length+" событий"); closePaste(); toast("Добавлено событий: "+add.length); }
+  catch(e){ err.textContent=saveError(e); err.hidden=false; b.disabled=false; renderPaste(); }
 };
 
 /* ===== Старт ===== */
