@@ -1,13 +1,21 @@
 {
- "updated": "2026-10-17T19:11:36.496Z",
+ "updated": "2026-10-17T19:18:06.933Z",
  "events": [
   {
-   "createdAt": "2026-10-17T16:45:00Z",
-   "date": "2026-10-21",
+   "title": "В тетрадь необходимо решить три задачи письменно:  Первая для решения задача — ФИО (номер в журнале)+ две последующие",
    "subject": "Основы права",
-   "title": "Домашнее задание",
+   "date": "2026-10-21",
    "type": "work",
-   "id": "dz-pravo-2110"
+   "id": "dz-pravo-2110",
+   "createdAt": "2026-10-17T16:45:00Z",
+   "attachments": [
+    {
+     "kind": "file",
+     "path": "files/mvcs3ui5-_4._.docx",
+     "name": "Тема 4. Основы гражданского права_Задачи.docx",
+     "ctype": "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+    }
+   ]
   },
   {
    "createdAt": "2026-10-17T16:45:00Z",
