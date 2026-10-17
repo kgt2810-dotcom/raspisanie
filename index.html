@@ -191,6 +191,10 @@ textarea{min-height:72px;resize:vertical}
 .xdate input{flex:1}
 .xdate button{border:1px solid var(--line);background:transparent;border-radius:10px;width:40px;height:42px;font-size:18px;color:var(--muted)}
 
+.orig{margin-top:6px;font-size:13px;color:var(--muted)}
+.orig summary{cursor:pointer}
+.orig .note{color:var(--muted);font-size:13px;margin-top:4px}
+
 footer{padding-block:8px 40px;color:var(--muted);font-size:13px;display:flex;gap:12px;flex-wrap:wrap;justify-content:space-between;align-items:center}
 .steps{margin:0;padding-left:20px;display:grid;gap:6px;font-size:14px;color:var(--ink)}
 .steps a{color:var(--accent)}
@@ -450,16 +454,58 @@ function toast(msg, ms){ const t=$("toast"); t.textContent=msg; t.hidden=false; 
 /* ===== Язык ===== */
 let lang = store("lang") || ((navigator.language||"").toLowerCase().startsWith("vi") ? "vi" : "ru");
 const L = () => T[lang];
-/* Машинный перевод RU→VI: переводчик Google, запасной — MyMemory; результаты кэшируются в браузере */
-let trCache=(()=>{ try{ return JSON.parse(store("trcache")||"{}")||{}; }catch(e){ return {}; } })();
+/* Машинный перевод RU→VI.
+   1) учебные слова заменяются метками и потом подставляются готовым вьетнамским термином;
+   2) сокращения раскрываются; 3) перевод идёт через английский (так точнее, чем напрямую);
+   запасной переводчик — MyMemory; результаты кэшируются в браузере */
+const TR_VER=3;
+let trCache=(()=>{ try{ return JSON.parse(store("trcache"+TR_VER)||"{}")||{}; }catch(e){ return {}; } })();
+try{ ["trcache","trcache2"].forEach(k=>localStorage.removeItem(k)); }catch(e){}
 const trPending=new Set(), trFailed=new Set(); let trBusy=false, trRenderT=null;
+const TERMS=[
+  [/зач[её]тн[а-яё]*\s+книжк[а-яё]*|зач[её]тк[а-яё]*/gi,"sổ điểm (зачётка)"],
+  [/дифференцированн[а-яё]*\s+зач[её]т[а-яё]*|дифзач[её]т[а-яё]*/gi,"thi qua môn có chấm điểm"],
+  [/зач[её]т[а-яё]*/gi,"thi qua môn (зачёт)"],
+  [/экзамен[а-яё]*/gi,"kỳ thi"],
+  [/контрольн[а-яё]*\s+работ[а-яё]*|контрольн[а-яё]*/gi,"bài kiểm tra"],
+  [/самостоятельн[а-яё]*\s+работ[а-яё]*/gi,"bài kiểm tra tự luận"],
+  [/(?<![а-яё])кдз(?![а-яё])/gi,"bài tập kiểm tra về nhà"],
+  [/(?<![а-яё])дз(?![а-яё])|домашн[а-яё]*\s+задани[а-яё]*|домашк[а-яё]*/gi,"bài tập về nhà"],
+  [/консультац[а-яё]*/gi,"buổi tư vấn"],
+  [/семинар[а-яё]*/gi,"buổi seminar"],
+  [/лекци[а-яё]*/gi,"bài giảng"],
+  [/конспект[а-яё]*/gi,"bài ghi chép"],
+  [/эссе/gi,"bài tiểu luận"],
+  [/реферат[а-яё]*/gi,"bài luận"],
+  [/презентаци[а-яё]*/gi,"bài thuyết trình"],
+  [/опрос[а-яё]*/gi,"kiểm tra miệng"],
+  [/пропуск[а-яё]*/gi,"buổi vắng"],
+  [/(?:ауд\.?|аудитори[а-яё]*)\s*№?\s*(\d+[а-яa-z]?)/gi,(m,n)=>"phòng "+n],
+  [/староста|старост[а-яё]*/gi,"lớp trưởng"],
+  [/преподавател[а-яё]*/gi,"giảng viên"]
+];
+const SUBJ_VI=[[/основ[а-яё]*\s+прав[а-яё]*/gi,"Cơ sở pháp luật"],[/экономическ[а-яё]*\s+теори[а-яё]*/gi,"Lý thuyết kinh tế"],[/истори[а-яё]*\s+росси[а-яё]*/gi,"Lịch sử Nga"],[/цифров[а-яё]*\s+математ[а-яё]*/gi,"Toán số"],[/основ[а-яё]*\s+менеджмент[а-яё]*/gi,"Quản trị học cơ bản"],[/иностранн[а-яё]*\s+язык[а-яё]*/gi,"Ngoại ngữ"]];
+function protect(text){
+  const keep=[]; let s=" "+text+" ";
+  s=s.replace(/(?<![а-яё])т\.\s?д\./gi,"и так далее").replace(/(?<![а-яё])т\.\s?е\./gi,"то есть").replace(/(?<![а-яё])т\.\s?ч\./gi,"том числе");
+  [...SUBJ_VI,...TERMS].forEach(([re,vi])=>{ s=s.replace(re,(...a)=>{ keep.push(typeof vi==="function"?vi(...a):vi); return " QZ"+(keep.length-1)+"ZQ "; }); });
+  return {s:s.trim(), keep};
+}
+function restore(s, keep){ return s.replace(/Q\s*Z\s*(\d+)\s*Z\s*Q/gi,(m,n)=>keep[+n]!==undefined?keep[+n]:m).replace(/\s+([,.;:!?])/g,"$1").replace(/\s{2,}/g," ").trim(); }
+async function gtx(text, sl, tl){
+  const r=await fetch("https://translate.googleapis.com/translate_a/single?client=gtx&sl="+sl+"&tl="+tl+"&dt=t&q="+encodeURIComponent(text));
+  if(!r.ok) throw new Error(r.status); const j=await r.json(); return ((j&&j[0])||[]).map(x=>x&&x[0]||"").join("").trim();
+}
 async function machineTranslate(text){
-  let out="";
-  try{ const r=await fetch("https://translate.googleapis.com/translate_a/single?client=gtx&sl=ru&tl=vi&dt=t&q="+encodeURIComponent(text));
-    if(r.ok){ const j=await r.json(); out=((j&&j[0])||[]).map(x=>x&&x[0]||"").join("").trim(); } }catch(e){}
-  if(!out){ try{ const r=await fetch("https://api.mymemory.translated.net/get?langpair=ru|vi&q="+encodeURIComponent(text.slice(0,480)));
+  const {s,keep}=protect(text); let out="";
+  try{ const en=await gtx(s,"ru","en"); if(en) out=await gtx(en,"en","vi"); }catch(e){}
+  if(!out){ try{ out=await gtx(s,"ru","vi"); }catch(e){} }
+  if(!out){ try{ const r=await fetch("https://api.mymemory.translated.net/get?langpair=ru|vi&q="+encodeURIComponent(s.slice(0,480)));
     if(r.ok){ const j=await r.json(); const t=j&&j.responseData&&j.responseData.translatedText; if(t && !/MYMEMORY WARNING|QUERY LENGTH/i.test(t)) out=t.trim(); } }catch(e){} }
-  return out;
+  if(!out) return "";
+  out=restore(out,keep);
+  if(/Q\s*Z\s*\d|\d\s*Z\s*Q/i.test(out)){ try{ out=await gtx(text,"ru","vi"); }catch(e){ return ""; } }
+  return out.charAt(0).toUpperCase()+out.slice(1);
 }
 async function mt(text){
   const t=(text||"").trim(); if(!t) return "";
@@ -467,7 +513,7 @@ async function mt(text){
   if(trCache[t]) return trCache[t];
   if(!/[а-яё]/i.test(t)) return t;
   const out=await machineTranslate(t);
-  if(out){ trCache[t]=out; try{ store("trcache",JSON.stringify(trCache)); }catch(e){} }
+  if(out){ trCache[t]=out; try{ store("trcache"+TR_VER,JSON.stringify(trCache)); }catch(e){} }
   return out;
 }
 async function trWorker(){
@@ -479,9 +525,11 @@ async function trWorker(){
   }
   trBusy=false;
 }
+// перевод, вписанный старостой вручную, — главный; старый автоперевод (до улучшения) пересчитывается
+const ownVi=(e,field)=>{ const v=e[field+"_vi"]; if(!v) return ""; if(e.vi_auto && (+e.vi_auto||1)<TR_VER) return ""; return v; };
 function tr(e, field){
   const v=e[field]||""; if(lang!=="vi") return v;
-  const own=e[field+"_vi"]; if(own) return own;
+  const own=ownVi(e,field); if(own) return own;
   const t=v.trim(); if(!t) return "";
   const hit=DICT[t.toLowerCase()]||trCache[t]; if(hit) return hit;
   if(/[а-яё]/i.test(t) && !trFailed.has(t)){ trPending.add(t); trWorker(); }
@@ -644,6 +692,7 @@ function eventRow(e, today){
   body.append(top, el("h3","title",tr(e,"title")||L().untitled));
   const meta=[tr(e,"subject"),viPlace(e.place),e.teacher].filter(Boolean).join(" · "); if(meta) body.append(el("div","meta",meta));
   const note=tr(e,"note"); if(note) body.append(el("div","note",note));
+  if(lang==="vi" && e.note && note!==e.note){ const o=el("details","orig"); o.append(el("summary",null,"Bản gốc tiếng Nga"), el("div","note",e.note)); body.append(o); }
   if(Array.isArray(e.attachments)&&e.attachments.length) body.append(attRow(e.attachments,false));
   const act=el("div","actions"); const done=isDone(e.id);
   const db1=el("button","btn"+(done?" on":""), done?L().done:L().markDone); db1.title=L().doneHint;
@@ -797,7 +846,8 @@ $("form").addEventListener("submit", async ev=>{
   try{
     if(old){ ["title","subject","note"].forEach(k=>{ if(old[k]!==data[k] && old[k+"_vi"]===data[k+"_vi"] && old.vi_auto) delete data[k+"_vi"]; }); }
     const hadVi=!!(data.title_vi||data.subject_vi||data.note_vi);
-    await addVi(data); if(!hadVi && (data.title_vi||data.subject_vi||data.note_vi)) data.vi_auto=true;
+    if(old && old.vi_auto && ['title','subject','note'].some(k=>(data[k+'_vi']||'')!==(old[k+'_vi']||''))) delete data.vi_auto; else if(old && old.vi_auto && hadVi) data.vi_auto=old.vi_auto;
+    await addVi(data); if(!hadVi && (data.title_vi||data.subject_vi||data.note_vi)) data.vi_auto=TR_VER;
     copies.forEach(c=>{ ["title_vi","subject_vi","note_vi","vi_auto"].forEach(k=>{ if(data[k]) c[k]=data[k]; }); });
     await saveEvents(evs=>{ const i=evs.findIndex(x=>x.id===data.id); if(i>=0) evs[i]=data; else evs.push(data); return [...evs,...copies]; }, (old?"Изменено: ":"Добавлено: ")+data.title+(copies.length?" (+"+copies.length+" дат)":""));
     closeSheet(); toast(copies.length ? "Добавлено на "+(copies.length+1)+" даты" : (old?"Сохранено":"Добавлено"));
@@ -841,7 +891,7 @@ $("qAdd").onclick=async()=>{
   err.hidden=true; const b=$("qAdd"); b.disabled=true; b.textContent="Сохраняю…";
   const now=new Date().toISOString();
   const add=data.dates.map(d=>{ const o={id:newId(),createdAt:now,type:data.type,title:data.title,date:d}; if(data.subject) o.subject=data.subject; return o; });
-  try{ if(add.length){ await addVi(add[0]); add.slice(1).forEach(o=>["title_vi","subject_vi"].forEach(k=>{ if(add[0][k]) o[k]=add[0][k]; })); add.forEach(o=>{ if(o.title_vi||o.subject_vi) o.vi_auto=true; }); } await saveEvents(evs=>[...evs,...add], "Добавлено: "+data.title+(add.length>1?" ("+add.length+" дат)":""));
+  try{ if(add.length){ await addVi(add[0]); add.slice(1).forEach(o=>["title_vi","subject_vi"].forEach(k=>{ if(add[0][k]) o[k]=add[0][k]; })); add.forEach(o=>{ if(o.title_vi||o.subject_vi) o.vi_auto=TR_VER; }); } await saveEvents(evs=>[...evs,...add], "Добавлено: "+data.title+(add.length>1?" ("+add.length+" дат)":""));
     toast("Добавлено: "+data.title+(data.subject?", "+data.subject:"")+(add.length>1?" — на "+add.length+" даты":""));
     q.subject=""; q.dates=[]; $("q-subject").value=""; $("q-date").value=""; $("q-title").value=""; renderQuick();
   }catch(e){ err.textContent=saveError(e); err.hidden=false; }
@@ -1032,7 +1082,7 @@ $("pasteGo").onclick=async()=>{
     ["time","place","subject"].forEach(k=>{ if((it[k]||"").trim()) o[k]=it[k].trim(); }); if(note) o.note=note; return o; }).filter(o=>parseDate(o.date));
   if(!add.length) return;
   const b=$("pasteGo"); b.disabled=true; b.textContent="Сохраняю…";
-  try{ if(add.length){ await addVi(add[0]); const tpl=add[0]; add.slice(1).forEach(o=>["title","subject","note"].forEach(k=>{ if(o[k]===tpl[k] && tpl[k+"_vi"]) o[k+"_vi"]=tpl[k+"_vi"]; })); for(const o of add.slice(1)) if(!o.title_vi||(o.subject&&!o.subject_vi)) await addVi(o); add.forEach(o=>{ if(o.title_vi||o.subject_vi||o.note_vi) o.vi_auto=true; }); }
+  try{ if(add.length){ await addVi(add[0]); const tpl=add[0]; add.slice(1).forEach(o=>["title","subject","note"].forEach(k=>{ if(o[k]===tpl[k] && tpl[k+"_vi"]) o[k+"_vi"]=tpl[k+"_vi"]; })); for(const o of add.slice(1)) if(!o.title_vi||(o.subject&&!o.subject_vi)) await addVi(o); add.forEach(o=>{ if(o.title_vi||o.subject_vi||o.note_vi) o.vi_auto=TR_VER; }); }
     await saveEvents(evs=>[...evs,...add], "Из текста: "+add.length+" событий"); closePaste(); toast("Добавлено событий: "+add.length); }
   catch(e){ err.textContent=saveError(e); err.hidden=false; b.disabled=false; renderPaste(); }
 };
