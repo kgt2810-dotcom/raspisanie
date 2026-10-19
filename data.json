@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-19T10:15:57.254Z",
+ "updated": "2026-10-19T11:11:37.088Z",
  "events": [
   {
    "title": "В тетрадь необходимо решить три задачи письменно:  Первая для решения задача — ФИО (номер в журнале)+ две последующие",
@@ -173,6 +173,46 @@
    "subject": "Экономическая теория",
    "subject_vi": "Lý thuyết kinh tế",
    "title_vi": "15 phút đầu tiên của lớp: chớp nhoáng kiểm tra miệng chủ đề 3 và chủ đề 4 (1 phần chủ đề, bài giảng 4.1)",
+   "vi_auto": 3
+  },
+  {
+   "id": "emvf5mbw799an",
+   "createdAt": "2026-10-19T11:11:35.095Z",
+   "type": "event",
+   "title": "Мероприятие",
+   "date": "2026-10-19",
+   "time": "17:20",
+   "title_vi": "Sự kiện",
+   "vi_auto": 3
+  },
+  {
+   "id": "emvf5mbw7xdod",
+   "createdAt": "2026-10-19T11:11:35.095Z",
+   "type": "event",
+   "title": "Мероприятие",
+   "date": "2026-10-22",
+   "time": "10:10",
+   "title_vi": "Sự kiện",
+   "vi_auto": 3
+  },
+  {
+   "id": "emvf5mbw7t3ee",
+   "createdAt": "2026-10-19T11:11:35.095Z",
+   "type": "event",
+   "title": "Мероприятие",
+   "date": "2026-10-22",
+   "time": "11:50",
+   "title_vi": "Sự kiện",
+   "vi_auto": 3
+  },
+  {
+   "id": "emvf5mbw7n7hj",
+   "createdAt": "2026-10-19T11:11:35.095Z",
+   "type": "event",
+   "title": "Мероприятие",
+   "date": "2026-10-22",
+   "time": "15:40",
+   "title_vi": "Sự kiện",
    "vi_auto": 3
   }
  ]
