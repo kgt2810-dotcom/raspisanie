@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-19T11:13:32.816Z",
+ "updated": "2026-10-19T11:15:05.949Z",
  "events": [
   {
    "title": "В тетрадь необходимо решить три задачи письменно:  Первая для решения задача — ФИО (номер в журнале)+ две последующие",
@@ -173,19 +173,6 @@
    "subject": "Экономическая теория",
    "subject_vi": "Lý thuyết kinh tế",
    "title_vi": "15 phút đầu tiên của lớp: chớp nhoáng kiểm tra miệng chủ đề 3 và chủ đề 4 (1 phần chủ đề, bài giảng 4.1)",
-   "vi_auto": 3
-  },
-  {
-   "title": "Мероприятие, консультация",
-   "subject": "экономическая теория",
-   "date": "2026-10-19",
-   "time": "17:20",
-   "type": "event",
-   "id": "emvf5mbw799an",
-   "createdAt": "2026-10-19T11:11:35.095Z",
-   "attachments": [],
-   "subject_vi": "Lý thuyết kinh tế",
-   "title_vi": "Sự kiện, buổi tư vấn",
    "vi_auto": 3
   }
  ]
