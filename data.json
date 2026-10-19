@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-19T11:15:05.949Z",
+ "updated": "2026-10-19T11:17:55.977Z",
  "events": [
   {
    "title": "В тетрадь необходимо решить три задачи письменно:  Первая для решения задача — ФИО (номер в журнале)+ две последующие",
@@ -173,6 +173,54 @@
    "subject": "Экономическая теория",
    "subject_vi": "Lý thuyết kinh tế",
    "title_vi": "15 phút đầu tiên của lớp: chớp nhoáng kiểm tra miệng chủ đề 3 và chủ đề 4 (1 phần chủ đề, bài giảng 4.1)",
+   "vi_auto": 3
+  },
+  {
+   "id": "emvf5uetdkqxl",
+   "createdAt": "2026-10-19T11:17:52.129Z",
+   "type": "event",
+   "title": "Мероприятие",
+   "date": "2026-10-19",
+   "time": "17:20",
+   "note": "Консультации по экономической теории",
+   "title_vi": "Sự kiện",
+   "note_vi": "Buổi tư vấn tới Lý thuyết kinh tế",
+   "vi_auto": 3
+  },
+  {
+   "id": "emvf5uete2crp",
+   "createdAt": "2026-10-19T11:17:52.130Z",
+   "type": "event",
+   "title": "Мероприятие",
+   "date": "2026-10-22",
+   "time": "10:10",
+   "note": "Консультации по экономической теории",
+   "title_vi": "Sự kiện",
+   "note_vi": "Buổi tư vấn tới Lý thuyết kinh tế",
+   "vi_auto": 3
+  },
+  {
+   "id": "emvf5uete6giy",
+   "createdAt": "2026-10-19T11:17:52.130Z",
+   "type": "event",
+   "title": "Мероприятие",
+   "date": "2026-10-22",
+   "time": "11:50",
+   "note": "Консультации по экономической теории",
+   "title_vi": "Sự kiện",
+   "note_vi": "Buổi tư vấn tới Lý thuyết kinh tế",
+   "vi_auto": 3
+  },
+  {
+   "id": "emvf5uetehgxd",
+   "createdAt": "2026-10-19T11:17:52.130Z",
+   "type": "event",
+   "title": "Мероприятие",
+   "date": "2026-10-22",
+   "time": "15:40",
+   "note": "Консультации по экономической теории",
+   "title_vi": "Sự kiện",
+   "note_vi": "Buổi tư vấn tới Lý thuyết kinh tế",
    "vi_auto": 3
   }
  ]
