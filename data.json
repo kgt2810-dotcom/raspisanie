@@ -1,5 +1,5 @@
 {
- "updated": "2026-10-20T13:07:33.697Z",
+ "updated": "2026-10-20T13:08:07.590Z",
  "events": [
   {
    "title": "В тетрадь необходимо решить три задачи письменно:  Первая для решения задача — ФИО (номер в журнале)+ две последующие",
@@ -232,6 +232,17 @@
    "subject": "История России",
    "subject_vi": "Lịch sử Nga",
    "title_vi": "Đọc chương 7, 8 từ sách giáo khoa chính (Petrov)",
+   "vi_auto": 3
+  },
+  {
+   "id": "emvgp808v8ktl",
+   "createdAt": "2026-10-20T13:08:05.311Z",
+   "type": "cons",
+   "title": "в 19:00 (см. ссылка в чате \"Важное\")",
+   "date": "2026-10-20",
+   "subject": "История России",
+   "subject_vi": "Lịch sử Nga",
+   "title_vi": "Lúc 19:00 (xem liên kết trong phần trò chuyện \"Quan trọng\")",
    "vi_auto": 3
   }
  ]
